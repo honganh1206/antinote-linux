@@ -14,6 +14,7 @@
     addNote,
     removeCurrentNote,
   } from "./lib/noteState.svelte";
+  import { getSetting } from "./lib/db";
 
   let textareaEl: HTMLTextAreaElement;
 
@@ -39,10 +40,10 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === "PageUp") {
+    if (event.ctrlKey && event.key === "h") {
       event.preventDefault();
       navigatePrev();
-    } else if (event.ctrlKey && event.key === "PageDown") {
+    } else if (event.ctrlKey && event.key === "l") {
       event.preventDefault();
       navigateNext();
     } else if (event.ctrlKey && event.key === "n") {
@@ -67,15 +68,18 @@
     loadNotes().then(() => focusEditor());
 
     const appWindow = getCurrentWindow();
-    const unlistenFocus = appWindow.onFocusChanged(
-      ({ payload: focused }) => {
-        if (focused) {
-          focusEditor();
-        } else {
-          flushSave();
-        }
+
+    getSetting("always_on_top").then((val) => {
+      const enabled = val !== "false";
+      appWindow.setAlwaysOnTop(enabled);
+    });
+    const unlistenFocus = appWindow.onFocusChanged(({ payload: focused }) => {
+      if (focused) {
+        focusEditor();
+      } else {
+        flushSave();
       }
-    );
+    });
 
     return () => {
       flushSave();
@@ -87,30 +91,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <main>
-  <nav>
-    <div class="nav-left">
-      <button
-        onclick={navigatePrev}
-        disabled={getCurrentIndex() === 0}
-        title="Previous note (Ctrl+PageUp)"
-      >
-        ‹
-      </button>
-      <span class="position">{getCurrentIndex() + 1} / {noteCount()}</span>
-      <button
-        onclick={navigateNext}
-        disabled={getCurrentIndex() >= noteCount() - 1}
-        title="Next note (Ctrl+PageDown)"
-      >
-        ›
-      </button>
-    </div>
-    <div class="nav-right">
-      <button onclick={addNote} title="New note (Ctrl+N)">+</button>
-      <button onclick={handleDelete} class="delete" title="Delete note">×</button>
-    </div>
-  </nav>
-
+  <div class="drag-region" data-tauri-drag-region></div>
   <textarea
     bind:this={textareaEl}
     value={getContent()}
@@ -120,6 +101,8 @@
     spellcheck="false"
     autocomplete="off"
   ></textarea>
+
+  <span class="position">{getCurrentIndex() + 1}/{noteCount()}</span>
 </main>
 
 <style>
@@ -129,70 +112,36 @@
     box-sizing: border-box;
   }
 
-  :global(body) {
-    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-    background-color: #faf8f5;
-    color: #2c2c2c;
+  :global(html),
+  :global(body),
+  :global(#app) {
+    background: transparent;
     overflow: hidden;
+    height: 100%;
+  }
+
+  :global(body) {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    color: #2c2c2c;
   }
 
   main {
+    position: relative;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
+    background-color: #faf8f5;
+    border-radius: 10px;
+    overflow: hidden;
   }
 
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.4rem 0.75rem;
-    border-bottom: 1px solid #e8e4df;
-    user-select: none;
+  .drag-region {
+    height: 16px;
     flex-shrink: 0;
-  }
-
-  .nav-left, .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .position {
-    font-size: 12px;
-    color: #999;
-    min-width: 3rem;
-    text-align: center;
-  }
-
-  nav button {
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 18px;
-    color: #888;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-  }
-
-  nav button:hover:not(:disabled) {
-    background: #eee8e2;
-    color: #555;
-  }
-
-  nav button:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
-  nav button.delete:hover:not(:disabled) {
-    background: #fde8e8;
-    color: #c44;
+    cursor: grab;
   }
 
   textarea {
@@ -211,5 +160,15 @@
 
   textarea::placeholder {
     color: #b0a99f;
+  }
+
+  .position {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 11px;
+    color: #b0a99f;
+    user-select: none;
+    pointer-events: none;
   }
 </style>

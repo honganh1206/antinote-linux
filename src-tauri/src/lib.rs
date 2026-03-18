@@ -1,5 +1,7 @@
 mod migrations;
+mod shortcuts;
 
+use tauri::Manager;
 use tauri_plugin_sql::Builder as SqlBuilder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -10,6 +12,21 @@ pub fn run() {
                 .add_migrations("sqlite:notes.db", migrations::get_migrations())
                 .build(),
         )
+        .setup(|app| {
+            #[cfg(desktop)]
+            {
+                shortcuts::setup(app);
+
+                if let Some(window) = app.get_webview_window("main") {
+                    let icon = tauri::image::Image::from_bytes(
+                        include_bytes!("../icons/icon.png"),
+                    )?;
+                    let _ = window.set_icon(icon);
+                }
+            }
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

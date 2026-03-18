@@ -3,6 +3,7 @@ import {
   createNote as dbCreateNote,
   updateNoteContent,
   deleteNote as dbDeleteNote,
+  getSetting,
 } from "./db";
 import type { Note } from "./types";
 
@@ -39,10 +40,20 @@ export function noteCount(): number {
 
 export async function loadNotes() {
   notes = await getAllNotes();
+
+  const autoCreate = (await getSetting("auto_create_note_on_launch")) !== "false";
+
   if (notes.length === 0) {
     const note = await dbCreateNote();
     notes = [note];
+  } else if (autoCreate) {
+    const latest = notes[notes.length - 1];
+    if (latest.content.trim().length > 0) {
+      const note = await dbCreateNote();
+      notes = [...notes, note];
+    }
   }
+
   currentIndex = notes.length - 1;
   content = notes[currentIndex].content;
 }
