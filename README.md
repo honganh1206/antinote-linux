@@ -1,8 +1,14 @@
 # Antinote for Linux
 
+![Antinote Icon](docs/icon.png)
+
 A lightweight, always-accessible scratchpad for Linux, inspired by [Antinote](https://antinote.io/).
 
 Built with [Tauri 2](https://tauri.app/) + [Svelte 5](https://svelte.dev/).
+
+## Demo
+
+![Antinote Demo](docs/demo.mp4)
 
 ## Prerequisites
 
