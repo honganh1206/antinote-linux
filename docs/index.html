@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antinote — A lightweight scratchpad for Linux</title>
+  <meta name="description" content="A lightweight, always-accessible scratchpad for Linux. Built with Tauri + Svelte.">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #FBF7F2;
+      --text: #2D2D2D;
+      --text-muted: #8C8580;
+      --accent: #D1A679;
+      --accent-hover: #C49462;
+      --btn-text: #FBF7F2;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A1816;
+        --text: #E8E2DB;
+        --text-muted: #7A756F;
+        --accent: #D1A679;
+        --accent-hover: #E0B98E;
+        --btn-text: #1A1816;
+      }
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 24px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    .download {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.75rem 2rem;
+      background: var(--accent);
+      color: var(--btn-text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1rem;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .download:hover {
+      background: var(--accent-hover);
+    }
+
+    .platform {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="icon.png" alt="Antinote icon" class="icon">
+    <h1>Antinote</h1>
+    <p class="tagline">A lightweight scratchpad for Linux</p>
+    <a href="https://github.com/honganh1206/antinote-linux/releases/latest" class="download">Download for Linux</a>
+    <p class="platform">.deb · .AppImage · .rpm</p>
+  </main>
+  <footer>
+    <a href="https://github.com/honganh1206/antinote-linux">GitHub</a>
+    <span style="color: var(--text-muted)">MIT</span>
+  </footer>
+</body>
+</html>

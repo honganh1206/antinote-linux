@@ -14,7 +14,8 @@
     addNote,
     removeCurrentNote,
   } from "./lib/noteState.svelte";
-  import { getSetting } from "./lib/db";
+  import { getSetting, setSetting } from "./lib/db";
+  import { listen } from "@tauri-apps/api/event";
 
   let textareaEl: HTMLTextAreaElement;
 
@@ -49,6 +50,9 @@
     } else if (event.ctrlKey && event.key === "n") {
       event.preventDefault();
       addNote();
+    } else if (event.ctrlKey && event.key === "d") {
+      event.preventDefault();
+      handleDelete();
     }
   }
 
@@ -69,10 +73,32 @@
 
     const appWindow = getCurrentWindow();
 
+    let alwaysOnTop = true;
     getSetting("always_on_top").then((val) => {
-      const enabled = val !== "false";
-      appWindow.setAlwaysOnTop(enabled);
+      alwaysOnTop = val !== "false";
+      appWindow.setAlwaysOnTop(alwaysOnTop);
     });
+
+    const unlistenNewNote = listen("tray-new-note", () => {
+      addNote().then(() => focusEditor());
+    });
+
+    const unlistenToggleAoT = listen("tray-toggle-always-on-top", () => {
+      alwaysOnTop = !alwaysOnTop;
+      appWindow.setAlwaysOnTop(alwaysOnTop);
+      setSetting("always_on_top", alwaysOnTop ? "true" : "false");
+    });
+
+    const unlistenQuit = listen("tray-quit", () => {
+      flushSave();
+    });
+
+    const unlistenClose = appWindow.onCloseRequested(async (event) => {
+      event.preventDefault();
+      await flushSave();
+      appWindow.destroy();
+    });
+
     const unlistenFocus = appWindow.onFocusChanged(({ payload: focused }) => {
       if (focused) {
         focusEditor();
@@ -84,6 +110,10 @@
     return () => {
       flushSave();
       unlistenFocus.then((unlisten) => unlisten());
+      unlistenNewNote.then((unlisten) => unlisten());
+      unlistenToggleAoT.then((unlisten) => unlisten());
+      unlistenQuit.then((unlisten) => unlisten());
+      unlistenClose.then((unlisten) => unlisten());
     };
   });
 </script>

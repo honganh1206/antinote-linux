@@ -18,9 +18,8 @@ pub fn run() {
                 shortcuts::setup(app);
 
                 if let Some(window) = app.get_webview_window("main") {
-                    let icon = tauri::image::Image::from_bytes(
-                        include_bytes!("../icons/icon.png"),
-                    )?;
+                    let icon =
+                        tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))?;
                     let _ = window.set_icon(icon);
                 }
             }
