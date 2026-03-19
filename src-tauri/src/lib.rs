@@ -1,5 +1,7 @@
 mod migrations;
 mod shortcuts;
+#[cfg(desktop)]
+mod tray;
 
 use tauri::Manager;
 use tauri_plugin_sql::Builder as SqlBuilder;
@@ -16,6 +18,7 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 shortcuts::setup(app);
+                tray::setup(app);
 
                 if let Some(window) = app.get_webview_window("main") {
                     let icon =

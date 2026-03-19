@@ -6,20 +6,32 @@ use tauri::{
 };
 
 pub fn setup(app: &App) {
+    eprintln!(
+        "[tray] setup start: session_type={:?}, desktop={:?}, display={:?}, wayland_display={:?}, dbus_session={}",
+        std::env::var("XDG_SESSION_TYPE").ok(),
+        std::env::var("XDG_CURRENT_DESKTOP").ok(),
+        std::env::var("DISPLAY").ok(),
+        std::env::var("WAYLAND_DISPLAY").ok(),
+        std::env::var("DBUS_SESSION_BUS_ADDRESS").is_ok(),
+    );
+
     let icon = match Image::from_bytes(include_bytes!("../icons/icon.png")) {
         Ok(img) => img,
         Err(e) => {
-            eprintln!("Failed to load tray icon: {}", e);
+            eprintln!("[tray] failed to load tray icon: {}", e);
             return;
         }
     };
-    let show_hide =
-        MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>).unwrap();
-    let new_note =
-        MenuItem::with_id(app, "new_note", "New Note", true, None::<&str>).unwrap();
-    let always_on_top =
-        MenuItem::with_id(app, "always_on_top", "Toggle Always on Top", true, None::<&str>)
-            .unwrap();
+    let show_hide = MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>).unwrap();
+    let new_note = MenuItem::with_id(app, "new_note", "New Note", true, None::<&str>).unwrap();
+    let always_on_top = MenuItem::with_id(
+        app,
+        "always_on_top",
+        "Toggle Always on Top",
+        true,
+        None::<&str>,
+    )
+    .unwrap();
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>).unwrap();
 
     let menu = MenuBuilder::new(app)
@@ -68,7 +80,8 @@ pub fn setup(app: &App) {
         })
         .build(app);
 
-    if let Err(e) = result {
-        eprintln!("Failed to create system tray: {}", e);
+    match result {
+        Ok(_) => eprintln!("[tray] system tray created successfully"),
+        Err(e) => eprintln!("[tray] failed to create system tray: {}", e),
     }
 }
