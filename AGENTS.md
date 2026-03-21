@@ -38,6 +38,12 @@ Antinote for Linux is a lightweight, always-accessible scratchpad for temporary 
 - `noteState.svelte.ts` manages notes array, current index, content, save timer
 - State is exposed via getter/setter functions, not exported `$state` variables directly
 
+### CSS in Svelte
+
+- **Never import CSS files** into Svelte components (e.g., `import './styles.css'`)
+- Always modify CSS directly within `<style>` blocks in Svelte files
+- Importing external CSS files causes rendering bugs (app gets squished on launch)
+
 ### Database
 
 - `db.ts` is a **singleton** — `getDb()` caches the Database instance

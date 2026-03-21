@@ -6,15 +6,6 @@ use tauri::{
 };
 
 pub fn setup(app: &App) {
-    eprintln!(
-        "[tray] setup start: session_type={:?}, desktop={:?}, display={:?}, wayland_display={:?}, dbus_session={}",
-        std::env::var("XDG_SESSION_TYPE").ok(),
-        std::env::var("XDG_CURRENT_DESKTOP").ok(),
-        std::env::var("DISPLAY").ok(),
-        std::env::var("WAYLAND_DISPLAY").ok(),
-        std::env::var("DBUS_SESSION_BUS_ADDRESS").is_ok(),
-    );
-
     let icon = match Image::from_bytes(include_bytes!("../icons/icon.png")) {
         Ok(img) => img,
         Err(e) => {

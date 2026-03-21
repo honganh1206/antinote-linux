@@ -15,13 +15,59 @@
     removeCurrentNote,
   } from "./lib/noteState.svelte";
   import { getSetting, setSetting } from "./lib/db";
+  import { getActiveMode } from "./lib/keywords.svelte";
+  import TodoOverlay from "./TodoOverlay.svelte";
+  import PlainOverlay from "./PlainOverlay.svelte";
+  import SlashPicker from "./SlashPicker.svelte";
   import { listen } from "@tauri-apps/api/event";
 
   let textareaEl: HTMLTextAreaElement;
+  let overlayEl: HTMLDivElement;
+  let showSlashPicker = $state(false);
+  let cursorLine = $state(0);
+
+  function updateCursorLine() {
+    if (!textareaEl) return;
+    const pos = textareaEl.selectionStart;
+    const textBefore = getContent().slice(0, pos);
+    cursorLine = textBefore.split("\n").length - 1;
+  }
+
+  function handleScroll() {
+    if (overlayEl) {
+      overlayEl.scrollTop = textareaEl.scrollTop;
+    }
+  }
+
+  function checkSlashPicker() {
+    const content = getContent();
+    const firstLine = content.split("\n")[0];
+    showSlashPicker = firstLine === "/" && textareaEl.selectionStart <= 1;
+  }
+
+  function handleSlashSelect(keyword: string) {
+    const content = getContent();
+    const newlineIdx = content.indexOf("\n");
+    const rest = newlineIdx !== -1 ? content.slice(newlineIdx) : "";
+    setContent(keyword + rest);
+    showSlashPicker = false;
+    textareaEl.value = getContent();
+    const pos = keyword.length;
+    textareaEl.setSelectionRange(pos, pos);
+    textareaEl.focus();
+    scheduleSave();
+  }
+
+  function handleSlashDismiss() {
+    showSlashPicker = false;
+    textareaEl.focus();
+  }
 
   function handleInput() {
     setContent(textareaEl.value);
     scheduleSave();
+    checkSlashPicker();
+    updateCursorLine();
   }
 
   function handlePaste(event: ClipboardEvent) {
@@ -122,83 +168,111 @@
 
 <main>
   <div class="drag-region" data-tauri-drag-region></div>
-  <textarea
-    bind:this={textareaEl}
-    value={getContent()}
-    oninput={handleInput}
-    onpaste={handlePaste}
-    placeholder="Start typing..."
-    spellcheck="false"
-    autocomplete="off"
-  ></textarea>
+  <div class="editor-wrapper">
+    <textarea
+      bind:this={textareaEl}
+      class="overlay-active"
+      value={getContent()}
+      oninput={handleInput}
+      onpaste={handlePaste}
+      onscroll={handleScroll}
+      onclick={updateCursorLine}
+      onkeyup={updateCursorLine}
+      placeholder="Start typing..."
+      spellcheck="false"
+      autocomplete="off"
+    ></textarea>
+    {#if getActiveMode() === "todo"}
+      <TodoOverlay bind:overlayEl {cursorLine} />
+    {:else}
+      <PlainOverlay bind:overlayEl />
+    {/if}
+    {#if showSlashPicker}
+      <SlashPicker onselect={handleSlashSelect} ondismiss={handleSlashDismiss} />
+    {/if}
+  </div>
 
-  <span class="position">{getCurrentIndex() + 1}/{noteCount()}</span>
+  <span class="position"
+    >{#if getActiveMode()}{getActiveMode()} ·
+    {/if}{getCurrentIndex() + 1}/{noteCount()}</span
+  >
 </main>
 
 <style>
-  :global(*) {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+:global(*) {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  :global(html),
-  :global(body),
-  :global(#app) {
-    background: transparent;
-    overflow: hidden;
-    height: 100%;
-  }
+:global(html),
+:global(body),
+:global(#app) {
+  background: transparent;
+  overflow: hidden;
+  height: 100%;
+}
 
-  :global(body) {
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
-    color: #2c2c2c;
-  }
+:global(body) {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #2c2c2c;
+}
 
-  main {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #faf8f5;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #faf8f5;
+  border-radius: 10px;
+  overflow: hidden;
+}
 
-  .drag-region {
-    height: 16px;
-    flex-shrink: 0;
-    cursor: grab;
-  }
+.drag-region {
+  height: 16px;
+  flex-shrink: 0;
+  cursor: grab;
+}
 
-  textarea {
-    flex: 1;
-    width: 100%;
-    border: none;
-    outline: none;
-    resize: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 15px;
-    line-height: 1.7;
-    color: #2c2c2c;
-    padding: 0.75rem 1.25rem;
-  }
+.editor-wrapper {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+}
 
-  textarea::placeholder {
-    color: #b0a99f;
-  }
+textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2c2c2c;
+  padding: 0.75rem 1.25rem 0.75rem calc(1.75rem + 1.2em);
+}
 
-  .position {
-    position: absolute;
-    bottom: 8px;
-    right: 12px;
-    font-size: 11px;
-    color: #b0a99f;
-    user-select: none;
-    pointer-events: none;
-  }
+textarea.overlay-active {
+  color: transparent;
+  caret-color: #2c2c2c;
+}
+
+textarea::placeholder {
+  color: #b0a99f;
+}
+
+.position {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 11px;
+  color: #b0a99f;
+  user-select: none;
+  pointer-events: none;
+}
 </style>
