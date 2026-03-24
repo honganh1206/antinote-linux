@@ -23,6 +23,8 @@ pub fn setup(app: &App) {
         None::<&str>,
     )
     .unwrap();
+    let auto_hide =
+        MenuItem::with_id(app, "auto_hide", "Toggle Auto-hide", true, None::<&str>).unwrap();
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>).unwrap();
 
     let menu = MenuBuilder::new(app)
@@ -30,6 +32,7 @@ pub fn setup(app: &App) {
         .item(&new_note)
         .separator()
         .item(&always_on_top)
+        .item(&auto_hide)
         .separator()
         .item(&quit)
         .build()
@@ -62,6 +65,9 @@ pub fn setup(app: &App) {
             }
             "always_on_top" => {
                 let _ = app.emit("tray-toggle-always-on-top", ());
+            }
+            "auto_hide" => {
+                let _ = app.emit("tray-toggle-auto-hide", ());
             }
             "quit" => {
                 let _ = app.emit("tray-quit", ());

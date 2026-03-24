@@ -15,6 +15,10 @@
     removeCurrentNote,
   } from "./lib/noteState.svelte";
   import { getSetting, setSetting } from "./lib/db";
+  import {
+    restoreWindowGeometry,
+    trackWindowGeometry,
+  } from "./lib/windowState";
   import { getActiveMode } from "./lib/keywords.svelte";
   import TodoOverlay from "./TodoOverlay.svelte";
   import PlainOverlay from "./PlainOverlay.svelte";
@@ -115,6 +119,9 @@
   }
 
   onMount(() => {
+    // restoreWindowGeometry may fail if the DB isn't ready yet (e.g., first launch,
+    // migration in progress). Errors are silently caught so loadNotes always runs.
+    restoreWindowGeometry().catch(() => {});
     loadNotes().then(() => focusEditor());
 
     const appWindow = getCurrentWindow();
@@ -125,6 +132,15 @@
       appWindow.setAlwaysOnTop(alwaysOnTop);
     });
 
+    let autoHideOnBlur = false;
+    getSetting("auto_hide_on_blur").then((val) => {
+      autoHideOnBlur = val === "true";
+    });
+
+    let autoHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const unlistenGeometry = trackWindowGeometry();
+
     const unlistenNewNote = listen("tray-new-note", () => {
       addNote().then(() => focusEditor());
     });
@@ -133,6 +149,11 @@
       alwaysOnTop = !alwaysOnTop;
       appWindow.setAlwaysOnTop(alwaysOnTop);
       setSetting("always_on_top", alwaysOnTop ? "true" : "false");
+    });
+
+    const unlistenToggleAutoHide = listen("tray-toggle-auto-hide", () => {
+      autoHideOnBlur = !autoHideOnBlur;
+      setSetting("auto_hide_on_blur", autoHideOnBlur ? "true" : "false");
     });
 
     const unlistenQuit = listen("tray-quit", () => {
@@ -147,17 +168,30 @@
 
     const unlistenFocus = appWindow.onFocusChanged(({ payload: focused }) => {
       if (focused) {
+        if (autoHideTimer) {
+          clearTimeout(autoHideTimer);
+          autoHideTimer = null;
+        }
         focusEditor();
       } else {
         flushSave();
+        if (autoHideOnBlur) {
+          autoHideTimer = setTimeout(() => {
+            autoHideTimer = null;
+            appWindow.hide();
+          }, 300);
+        }
       }
     });
 
     return () => {
       flushSave();
+      if (autoHideTimer) clearTimeout(autoHideTimer);
+      unlistenGeometry.then((unlisten) => unlisten());
       unlistenFocus.then((unlisten) => unlisten());
       unlistenNewNote.then((unlisten) => unlisten());
       unlistenToggleAoT.then((unlisten) => unlisten());
+      unlistenToggleAutoHide.then((unlisten) => unlisten());
       unlistenQuit.then((unlisten) => unlisten());
       unlistenClose.then((unlisten) => unlisten());
     };
@@ -188,7 +222,10 @@
       <PlainOverlay bind:overlayEl />
     {/if}
     {#if showSlashPicker}
-      <SlashPicker onselect={handleSlashSelect} ondismiss={handleSlashDismiss} />
+      <SlashPicker
+        onselect={handleSlashSelect}
+        ondismiss={handleSlashDismiss}
+      />
     {/if}
   </div>
 
@@ -199,80 +236,80 @@
 </main>
 
 <style>
-:global(*) {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+  :global(*) {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-:global(html),
-:global(body),
-:global(#app) {
-  background: transparent;
-  overflow: hidden;
-  height: 100%;
-}
+  :global(html),
+  :global(body),
+  :global(#app) {
+    background: transparent;
+    overflow: hidden;
+    height: 100%;
+  }
 
-:global(body) {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-  color: #2c2c2c;
-}
+  :global(body) {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    color: #2c2c2c;
+  }
 
-main {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #faf8f5;
-  border-radius: 10px;
-  overflow: hidden;
-}
+  main {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #faf8f5;
+    border-radius: 10px;
+    overflow: hidden;
+  }
 
-.drag-region {
-  height: 16px;
-  flex-shrink: 0;
-  cursor: grab;
-}
+  .drag-region {
+    height: 16px;
+    flex-shrink: 0;
+    cursor: grab;
+  }
 
-.editor-wrapper {
-  position: relative;
-  flex: 1;
-  overflow: auto;
-}
+  .editor-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: auto;
+  }
 
-textarea {
-  width: 100%;
-  height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background: transparent;
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 1.7;
-  color: #2c2c2c;
-  padding: 0.75rem 1.25rem 0.75rem calc(1.75rem + 1.2em);
-}
+  textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c2c2c;
+    padding: 0.75rem 1.25rem 0.75rem calc(1.75rem + 1.2em);
+  }
 
-textarea.overlay-active {
-  color: transparent;
-  caret-color: #2c2c2c;
-}
+  textarea.overlay-active {
+    color: transparent;
+    caret-color: #2c2c2c;
+  }
 
-textarea::placeholder {
-  color: #b0a99f;
-}
+  textarea::placeholder {
+    color: #b0a99f;
+  }
 
-.position {
-  position: absolute;
-  bottom: 8px;
-  right: 12px;
-  font-size: 11px;
-  color: #b0a99f;
-  user-select: none;
-  pointer-events: none;
-}
+  .position {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 11px;
+    color: #b0a99f;
+    user-select: none;
+    pointer-events: none;
+  }
 </style>

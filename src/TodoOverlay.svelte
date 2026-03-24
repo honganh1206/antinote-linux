@@ -2,6 +2,8 @@
   import { getContent } from "./lib/noteState.svelte";
   import { getKeywordTitle } from "./lib/keywords.svelte";
   import { parseTodoLines } from "./lib/keywords/todo";
+  import { parseLinks } from "./lib/links";
+  import { openUrl } from "@tauri-apps/plugin-opener";
 
   let {
     overlayEl = $bindable(),
@@ -14,7 +16,30 @@
   const title = $derived(getKeywordTitle());
   // cursorLine is 0-indexed from full content; overlay starts at line 1
   const cursorOverlayIndex = $derived(cursorLine - 1);
+
+  function handleLinkClick(event: MouseEvent | KeyboardEvent, url: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    openUrl(url);
+  }
 </script>
+
+{#snippet linkLine(text: string)}
+  {#each parseLinks(text) as seg}
+    {#if seg.type === "link"}
+      <span
+        class="link"
+        title={seg.fullUrl}
+        role="link"
+        tabindex="-1"
+        onclick={(e) => handleLinkClick(e, seg.fullUrl!)}
+        onkeydown={(e) => { if (e.key === "Enter") handleLinkClick(e, seg.fullUrl!); }}
+      >{seg.displayValue}</span>
+    {:else}
+      {seg.displayValue}
+    {/if}
+  {/each}
+{/snippet}
 
 <div class="todo-overlay" bind:this={overlayEl}>
   <div class="line keyword-line">{keywordLine}</div>
@@ -22,17 +47,17 @@
     {#if line.type === "empty"}
       <div class="line">&nbsp;</div>
     {:else if line.type === "heading"}
-      <div class="line heading h{line.headingLevel}">{line.text}</div>
+      <div class="line heading h{line.headingLevel}">{@render linkLine(line.text)}</div>
     {:else if line.type === "comment"}
-      <div class="line comment">{line.text}</div>
+      <div class="line comment">{@render linkLine(line.text)}</div>
     {:else if line.type === "checklist-item-checked" && i !== cursorOverlayIndex}
       <div class="line checked">
-        <span class="checkbox">&#9745 </span><s>{line.text}</s>
+        <span class="checkbox">&#9745 </span><s>{@render linkLine(line.text)}</s>
       </div>
     {:else if line.type === "checklist-item-checked"}
-      <div class="line"><span class="checkbox">&#9744 </span>{line.text}/x</div>
+      <div class="line"><span class="checkbox">&#9744 </span>{@render linkLine(line.text)}/x</div>
     {:else}
-      <div class="line"><span class="checkbox">&#9744 </span>{line.text}</div>
+      <div class="line"><span class="checkbox">&#9744 </span>{@render linkLine(line.text)}</div>
     {/if}
   {/each}
 </div>
@@ -91,5 +116,16 @@
 
   .checked s {
     text-decoration: line-through;
+  }
+
+  .link {
+    color: #5a7ec2;
+    pointer-events: auto;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .link:hover {
+    text-decoration: underline;
   }
 </style>
