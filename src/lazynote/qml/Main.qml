@@ -134,15 +134,18 @@ ApplicationWindow {
             anchors {
                 left: parent.left; right: parent.right
                 top: dragStrip.bottom; bottom: parent.bottom
-                leftMargin: 6; rightMargin: 6; bottomMargin: 22
+                leftMargin: backend && backend.timerVisible ? 42 : 6
+                rightMargin: 6; bottomMargin: 22
             }
         }
 
         TimerOverlay {
-            anchors.right: parent.right
+            anchors.left: parent.left
             anchors.top: dragStrip.bottom
-            anchors.rightMargin: 12
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 10
             anchors.topMargin: 8
+            anchors.bottomMargin: 28
         }
 
         // Hover-revealed top-edge controls, sharing the export button's reveal

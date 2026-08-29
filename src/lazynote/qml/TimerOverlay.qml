@@ -3,55 +3,86 @@ import QtQuick
 Item {
     id: root
     visible: backend && backend.timerVisible
-    width: 136
-    height: 42
+    width: 34
     z: 20
 
-    Rectangle {
-        anchors.fill: parent
-        radius: 8
-        color: backend ? backend.colors.bg : "#1f2023"
-        border.width: 1
-        border.color: backend ? backend.colors.muted : "#6f6b64"
-        opacity: 0.96
+    readonly property int blockCount: 28
+    readonly property real progress: !backend || backend.timerTotal <= 0
+        ? 0
+        : Math.min(1, backend.timerElapsed / backend.timerTotal)
+    readonly property int fadedBlocks: Math.round(progress * blockCount)
+
+    function formatDuration(milliseconds) {
+        const seconds = Math.floor(Math.max(0, milliseconds) / 1000)
+        const minutes = Math.floor(seconds / 60)
+        return (minutes < 10 ? "0" : "") + minutes + ":"
+            + (seconds % 60 < 10 ? "0" : "") + (seconds % 60)
     }
 
     Text {
-        id: timeLabel
-        anchors.left: parent.left
-        anchors.leftMargin: 12
-        anchors.verticalCenter: parent.verticalCenter
-        text: backend ? backend.timerDisplay : "00:00"
-        color: backend ? backend.colors.text : "#d6d3cc"
+        id: elapsedLabel
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: root.formatDuration(backend ? backend.timerElapsed : 0)
+        color: backend ? backend.colors.muted : "#6f6b64"
+        opacity: backend && backend.timerState === "paused" ? 0.55 : 1
         font.family: backend ? backend.font.family : ""
-        font.pixelSize: backend ? backend.font.size : 15
-        font.bold: true
+        font.pixelSize: 10
+    }
+
+    Item {
+        id: blocks
+        anchors.top: elapsedLabel.bottom
+        anchors.topMargin: 8
+        anchors.bottom: totalLabel.top
+        anchors.bottomMargin: 8
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 3
+
+        Repeater {
+            model: root.blockCount
+            delegate: Rectangle {
+                width: 3
+                height: 3
+                radius: 1
+                y: index * (blocks.height - height) / Math.max(1, root.blockCount - 1)
+                color: index < root.fadedBlocks
+                    ? (backend ? backend.colors.muted : "#6f6b64")
+                    : (backend ? backend.colors.green : "#84c08a")
+                opacity: index < root.fadedBlocks ? 0.28 : 0.86
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+            }
+        }
     }
 
     Text {
-        anchors.left: timeLabel.right
-        anchors.leftMargin: 7
-        anchors.verticalCenter: parent.verticalCenter
-        text: !backend || backend.timerState === "running" ? "" : backend.timerState
+        id: totalLabel
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: root.formatDuration(backend ? backend.timerTotal : 0)
         color: backend ? backend.colors.muted : "#6f6b64"
         font.family: backend ? backend.font.family : ""
-        font.pixelSize: backend ? backend.font.size - 4 : 11
+        font.pixelSize: 10
     }
 
     MouseArea {
+        anchors.top: parent.top
         anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        width: 24
-        height: 24
+        width: 16
+        height: 16
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        Accessible.name: "Dismiss timer"
         onClicked: backend.dismiss_timer()
 
         Text {
             anchors.centerIn: parent
             text: "×"
-            color: parent.containsMouse && backend ? backend.colors.text : (backend ? backend.colors.muted : "#6f6b64")
-            font.pixelSize: 16
+            visible: parent.containsMouse
+            color: backend ? backend.colors.text : "#d6d3cc"
+            font.pixelSize: 14
         }
     }
 }
