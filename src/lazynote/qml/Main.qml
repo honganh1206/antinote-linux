@@ -138,6 +138,13 @@ ApplicationWindow {
             }
         }
 
+        TimerOverlay {
+            anchors.right: parent.right
+            anchors.top: dragStrip.bottom
+            anchors.rightMargin: 12
+            anchors.topMargin: 8
+        }
+
         // Hover-revealed top-edge controls, sharing the export button's reveal
         // idiom: hovering the drag strip reveals them; each button's own hit area
         // keeps the zone "hovered" while the cursor is on it. Buttons are disabled

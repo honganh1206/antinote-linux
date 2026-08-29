@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import threading
+from collections.abc import Callable
 
 from PySide6.QtCore import (
     Property, Qt, QObject, QTimer, QUrl, Signal, Slot,
@@ -15,7 +16,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QDesktopServices, QFontDatabase, QFontInfo, QGuiApplication, QImage
 
-from lazynote import fonts, obsidian, ocr, store, theme
+from lazynote import fonts, notifications, obsidian, ocr, store, theme, timer
 from lazynote.editormodel import line_render_spans
 from lazynote.geometry import Geometry, is_on_screen, parse_geometry
 from lazynote.notestate import NoteState
@@ -35,8 +36,15 @@ class Backend(QObject):
     linkSettingsChanged = Signal()
     ocrComplete = Signal(str)        # recognized text
     ocrStatus = Signal(str, bool)    # (message, isError)
+    timerChanged = Signal()
 
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(
+        self,
+        parent: QObject | None = None,
+        *,
+        clock_ms: Callable[[], int] = timer.now_ms,
+        notify: Callable[[], object] = notifications.notify_timer_finished,
+    ) -> None:
         super().__init__(parent)
         self._mono_cache: list[str] | None = None
         self._state = NoteState(store.get_notes(), store.get_settings())
@@ -44,6 +52,14 @@ class Backend(QObject):
         self._save_timer.setSingleShot(True)
         self._save_timer.setInterval(SAVE_DEBOUNCE_MS)
         self._save_timer.timeout.connect(self._state.save_current)
+
+        self._clock_ms = clock_ms
+        self._notify = notify
+        self._timer_state = timer.decode_state(store.get_settings().get("timer_state"))
+        self._timer_tick = QTimer(self)
+        self._timer_tick.setInterval(250)
+        self._timer_tick.timeout.connect(self.refresh_timer)
+        self.refresh_timer()
 
         # Per-note expanded-link state (session-only). URLs in this set render
         # full-length even when auto-shortening is on. Keyed by URL value.
@@ -168,6 +184,76 @@ class Backend(QObject):
         return list(REGISTERED_KEYWORDS)
 
     keywords = Property("QStringList", _keywords, constant=True)
+
+    # ---- timer ----
+    def _timer_state_name(self) -> str:
+        return self._timer_state.status if self._timer_state is not None else "inactive"
+
+    timerState = Property(str, _timer_state_name, notify=timerChanged)
+
+    def _timer_remaining(self) -> int:
+        if self._timer_state is None:
+            return 0
+        return timer.remaining_ms(self._timer_state, self._clock_ms())
+
+    timerRemaining = Property(int, _timer_remaining, notify=timerChanged)
+
+    def _timer_display(self) -> str:
+        return timer.format_remaining(self._timer_remaining())
+
+    timerDisplay = Property(str, _timer_display, notify=timerChanged)
+
+    def _timer_visible(self) -> bool:
+        return self._timer_state is not None
+
+    timerVisible = Property(bool, _timer_visible, notify=timerChanged)
+
+    def _persist_timer(self) -> None:
+        store.get_settings().set("timer_state", timer.encode_state(self._timer_state))
+
+    def _sync_timer_tick(self) -> None:
+        if self._timer_state is not None and self._timer_state.status == "running":
+            self._timer_tick.start()
+        else:
+            self._timer_tick.stop()
+
+    @Slot(str, result=bool)
+    def run_timer_command(self, line: str) -> bool:
+        """Run a recognized timer command and report whether QML should remove it."""
+        command = timer.parse_command(line)
+        if command is None:
+            return False
+        now = self._clock_ms()
+        if command.kind == "start":
+            self._timer_state = timer.start(command.duration_ms or 0, now)
+        elif command.kind == "pause" and self._timer_state is not None:
+            self._timer_state = timer.pause(self._timer_state, now)
+        elif command.kind == "resume" and self._timer_state is not None:
+            self._timer_state = timer.resume(self._timer_state, now)
+        self._persist_timer()
+        self._sync_timer_tick()
+        self.timerChanged.emit()
+        return True
+
+    @Slot()
+    def refresh_timer(self) -> None:
+        """Refresh the visible countdown from wall-clock time."""
+        if self._timer_state is None:
+            return
+        old_status = self._timer_state.status
+        self._timer_state = timer.refresh(self._timer_state, self._clock_ms())
+        if old_status != "done" and self._timer_state.status == "done":
+            self._notify()
+            self._persist_timer()
+        self._sync_timer_tick()
+        self.timerChanged.emit()
+
+    @Slot()
+    def dismiss_timer(self) -> None:
+        self._timer_state = None
+        self._persist_timer()
+        self._sync_timer_tick()
+        self.timerChanged.emit()
 
     # ---- slots ----
     @Slot()

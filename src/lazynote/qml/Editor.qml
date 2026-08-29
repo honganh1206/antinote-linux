@@ -96,6 +96,25 @@ Item {
         Qt.callLater(ensureEditor)
     }
 
+    // Timer commands are consumed as complete lines; ordinary text keeps the
+    // editor's normal split-on-Enter behavior.
+    function submitLineOrSplit(idx, col) {
+        if (!backend.run_timer_command(lines[idx])) {
+            splitLine(idx, col)
+            return
+        }
+        var arr = lines.slice()
+        arr.splice(idx, 1)
+        if (arr.length === 0)
+            arr = [""]
+        lines = arr
+        cursorLine = Math.min(idx, lines.length - 1)
+        cursorCol = 0
+        list.model = lines.length
+        pushEdit()
+        Qt.callLater(ensureEditor)
+    }
+
     function joinWithPrev(idx) {
         if (idx <= 0)
             return
@@ -365,11 +384,11 @@ Item {
                     onCursorPositionChanged: root.cursorCol = cursorPosition
 
                     Keys.onReturnPressed: function (e) {
-                        root.splitLine(row.index, cursorPosition)
+                        root.submitLineOrSplit(row.index, cursorPosition)
                         e.accepted = true
                     }
                     Keys.onEnterPressed: function (e) {
-                        root.splitLine(row.index, cursorPosition)
+                        root.submitLineOrSplit(row.index, cursorPosition)
                         e.accepted = true
                     }
                     Keys.onPressed: function (e) {

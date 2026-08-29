@@ -32,6 +32,21 @@ and the bespoke **Option B** (`EditorB.qml`, per-line styled delegates with real
 - **Clipboard OCR:** take a screenshot with your desktop tool, press **Ctrl+V** in
   Lazynote, and the recognized text is inserted at the cursor (multi-line
   preserved). Requires Tesseract (see Prerequisites).
+- **Timer commands:** start, pause, and resume one persistent countdown from any
+  line in a note.
+
+### Timer
+
+Type a timer command on any line, then press Enter. Lazynote removes the command
+line and shows one compact countdown over the note:
+
+- `timer` starts 25 minutes.
+- `timer 10m`, `timer 90s`, and `timer 1h` start custom countdowns.
+- `timer p` pauses the active timer.
+- `timer r` resumes the paused timer.
+
+Only one timer runs at a time. It continues while the app is hidden or restarted
+and sends a desktop notification when it finishes.
 
 ## Prerequisites
 
@@ -47,6 +62,9 @@ and the bespoke **Option B** (`EditorB.qml`, per-line styled delegates with real
   The `.deb` package recommends `tesseract-ocr`, so apt installs it by default
   when you `apt install ./lazynote_*.deb`. If it's missing, Ctrl+V on a
   screenshot shows an install hint toast.
+- **Desktop notifications** — `notify-send` (`libnotify-bin` on Debian/Ubuntu)
+  enables timer completion notifications with a sound hint. The `.deb` recommends
+  it; timer completion still remains visible in Lazynote if it is unavailable.
 
 ## Development
 
