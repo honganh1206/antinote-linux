@@ -49,7 +49,7 @@ Item {
                 color: index < root.fadedBlocks
                     ? (backend ? backend.colors.muted : "#6f6b64")
                     : (backend ? backend.colors.green : "#84c08a")
-                opacity: index < root.fadedBlocks ? 0.28 : 0.86
+                opacity: index < root.fadedBlocks ? 0.28 : 1
 
                 Behavior on color { ColorAnimation { duration: 150 } }
                 Behavior on opacity { NumberAnimation { duration: 150 } }

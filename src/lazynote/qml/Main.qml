@@ -134,7 +134,7 @@ ApplicationWindow {
             anchors {
                 left: parent.left; right: parent.right
                 top: dragStrip.bottom; bottom: parent.bottom
-                leftMargin: backend && backend.timerVisible ? 42 : 6
+                leftMargin: backend && backend.timerVisible ? 48 : 6
                 rightMargin: 6; bottomMargin: 22
             }
         }
