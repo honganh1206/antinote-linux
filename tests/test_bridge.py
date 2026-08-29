@@ -48,7 +48,7 @@ def test_timer_command_persists_running_timer_and_exposes_properties(tmp_path, m
     assert b.property("timerTotal") == 600_000
     assert b.property("timerDisplay") == "10:00"
     assert b.property("timerVisible") is True
-    assert store.get_settings().get("timer_state")
+    assert store.get_notes().list()[-1].timer_state
 
 
 def test_timer_pause_resume_and_restart_restore(tmp_path, monkeypatch):
@@ -64,6 +64,7 @@ def test_timer_pause_resume_and_restart_restore(tmp_path, monkeypatch):
     assert b.property("timerRemaining") == 6_750
     now[0] = 99_000
     restored = type(b)(clock_ms=lambda: now[0])
+    restored.load()
     assert restored.property("timerState") == "paused"
     assert restored.property("timerRemaining") == 6_750
     assert restored.property("timerElapsed") == 3_250
@@ -158,3 +159,30 @@ def test_backend_slash_and_mode(tmp_path, monkeypatch):
     b.slash_select("todo")
     assert b.property("content") == "todo"
     assert b.property("mode") == "todo"
+
+
+def test_timers_are_isolated_per_note_and_timer_x_removes_current(tmp_path, monkeypatch):
+    now = [1_000]
+    b = _make_backend(tmp_path, monkeypatch, clock_ms=lambda: now[0])
+    b.run_timer_command("timer 10s")
+    b.new_note()
+    assert b.property("timerVisible") is False
+    b.run_timer_command("timer 20s")
+    b.navigate(-1)
+    assert b.property("timerTotal") == 10_000
+    b.navigate(1)
+    assert b.property("timerTotal") == 20_000
+    assert b.run_timer_command("timer x") is True
+    assert b.property("timerVisible") is False
+
+
+def test_load_migrates_legacy_global_timer_to_current_note(tmp_path, monkeypatch):
+    from lazynote import store, timer
+
+    now = [1_000]
+    b = _make_backend(tmp_path, monkeypatch, clock_ms=lambda: now[0])
+    store.get_settings().set("timer_state", timer.encode_state(timer.start(10_000, now[0])))
+    b.load()
+    assert b.property("timerTotal") == 10_000
+    assert store.get_settings().get("timer_state") == ""
+    assert store.get_notes().list()[-1].timer_state
