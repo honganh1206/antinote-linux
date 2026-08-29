@@ -12,22 +12,36 @@ Item {
         : Math.min(1, backend.timerElapsed / backend.timerTotal)
     readonly property int fadedBlocks: Math.floor(progress * blockCount)
 
-    function formatDuration(milliseconds) {
-        const seconds = Math.floor(Math.max(0, milliseconds) / 1000)
-        const minutes = Math.floor(seconds / 60)
-        return (minutes < 10 ? "0" : "") + minutes + ":"
-            + (seconds % 60 < 10 ? "0" : "") + (seconds % 60)
+    function minutes(milliseconds) {
+        return Math.floor(Math.max(0, milliseconds) / 60000)
     }
 
-    Text {
+    function seconds(milliseconds) {
+        const seconds = Math.floor(Math.max(0, milliseconds) / 1000) % 60
+        return (seconds < 10 ? "0" : "") + seconds
+    }
+
+    Column {
         id: elapsedLabel
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        text: root.formatDuration(backend ? backend.timerElapsed : 0)
-        color: backend ? backend.colors.muted : "#6f6b64"
+        spacing: -2
         opacity: backend && backend.timerState === "paused" ? 0.55 : 1
-        font.family: backend ? backend.font.family : ""
-        font.pixelSize: 10
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.minutes(backend ? backend.timerElapsed : 0)
+            color: backend ? backend.colors.muted : "#6f6b64"
+            font.family: backend ? backend.font.family : ""
+            font.pixelSize: 10
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.seconds(backend ? backend.timerElapsed : 0)
+            color: backend ? backend.colors.muted : "#6f6b64"
+            font.family: backend ? backend.font.family : ""
+            font.pixelSize: 10
+        }
     }
 
     Item {
@@ -57,14 +71,26 @@ Item {
         }
     }
 
-    Text {
+    Column {
         id: totalLabel
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        text: root.formatDuration(backend ? backend.timerTotal : 0)
-        color: backend ? backend.colors.muted : "#6f6b64"
-        font.family: backend ? backend.font.family : ""
-        font.pixelSize: 10
+        spacing: -2
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.minutes(backend ? backend.timerTotal : 0)
+            color: backend ? backend.colors.muted : "#6f6b64"
+            font.family: backend ? backend.font.family : ""
+            font.pixelSize: 10
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.seconds(backend ? backend.timerTotal : 0)
+            color: backend ? backend.colors.muted : "#6f6b64"
+            font.family: backend ? backend.font.family : ""
+            font.pixelSize: 10
+        }
     }
 
     MouseArea {
