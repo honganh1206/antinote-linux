@@ -11,6 +11,7 @@ def test_parse_start_commands():
 def test_parse_control_commands_and_rejects_non_commands():
     assert timer.parse_command("timer p") == timer.TimerCommand("pause", None)
     assert timer.parse_command("timer r") == timer.TimerCommand("resume", None)
+    assert timer.parse_command("timer x") == timer.TimerCommand("dismiss", None)
     assert timer.parse_command(" timer") is None
     assert timer.parse_command("timer 0m") is None
     assert timer.parse_command("timer -1m") is None

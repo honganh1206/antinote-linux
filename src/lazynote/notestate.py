@@ -40,6 +40,17 @@ class NoteState:
     def set_content(self, value: str) -> None:
         self.content = value
 
+    def current_timer_state(self) -> str | None:
+        note = self.current()
+        return note.timer_state if note is not None else None
+
+    def set_current_timer_state(self, value: str | None) -> None:
+        note = self.current()
+        if note is None:
+            return
+        self._notes_repo.update_timer(note.id, value)
+        note.timer_state = value
+
     def save_current(self) -> None:
         note = self.current()
         if note is None:

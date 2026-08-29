@@ -14,6 +14,7 @@ class Note:
     sort_index: int
     created_at: int
     updated_at: int
+    timer_state: str | None
 
 
 def _now_ms() -> int:
@@ -32,7 +33,8 @@ def open_db(path: str) -> sqlite3.Connection:
             content TEXT NOT NULL DEFAULT '',
             sort_index INTEGER NOT NULL UNIQUE,
             created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
+            updated_at INTEGER NOT NULL,
+            timer_state TEXT
         );
         CREATE TABLE IF NOT EXISTS app_settings (
             key TEXT PRIMARY KEY,
@@ -40,6 +42,9 @@ def open_db(path: str) -> sqlite3.Connection:
         );
         """
     )
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(notes)")}
+    if "timer_state" not in columns:
+        conn.execute("ALTER TABLE notes ADD COLUMN timer_state TEXT")
     conn.executemany(
         "INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
         [
@@ -70,12 +75,19 @@ class NotesRepo:
             (content, next_index, now, now),
         )
         self._conn.commit()
-        return Note(int(cur.lastrowid), content, next_index, now, now)
+        return Note(int(cur.lastrowid), content, next_index, now, now, None)
 
     def update(self, note_id: int, content: str) -> None:
         self._conn.execute(
             "UPDATE notes SET content = ?, updated_at = ? WHERE id = ?",
             (content, _now_ms(), note_id),
+        )
+        self._conn.commit()
+
+    def update_timer(self, note_id: int, timer_state: str | None) -> None:
+        self._conn.execute(
+            "UPDATE notes SET timer_state = ?, updated_at = ? WHERE id = ?",
+            (timer_state, _now_ms(), note_id),
         )
         self._conn.commit()
 
