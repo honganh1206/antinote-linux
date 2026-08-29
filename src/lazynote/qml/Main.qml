@@ -145,7 +145,7 @@ ApplicationWindow {
             anchors.bottom: parent.bottom
             anchors.leftMargin: 10
             anchors.topMargin: 8
-            anchors.bottomMargin: 28
+            anchors.bottomMargin: 38
         }
 
         // Hover-revealed top-edge controls, sharing the export button's reveal

@@ -10,7 +10,7 @@ Item {
     readonly property real progress: !backend || backend.timerTotal <= 0
         ? 0
         : Math.min(1, backend.timerElapsed / backend.timerTotal)
-    readonly property int fadedBlocks: Math.round(progress * blockCount)
+    readonly property int fadedBlocks: Math.floor(progress * blockCount)
 
     function formatDuration(milliseconds) {
         const seconds = Math.floor(Math.max(0, milliseconds) / 1000)
