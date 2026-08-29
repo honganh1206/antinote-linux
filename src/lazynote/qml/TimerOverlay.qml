@@ -25,18 +25,21 @@ Item {
         id: elapsedLabel
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width
         spacing: -2
         opacity: backend && backend.timerState === "paused" ? 0.55 : 1
 
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             text: root.minutes(backend ? backend.timerElapsed : 0)
             color: backend ? backend.colors.muted : "#6f6b64"
             font.family: backend ? backend.font.family : ""
             font.pixelSize: 10
         }
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             text: root.seconds(backend ? backend.timerElapsed : 0)
             color: backend ? backend.colors.muted : "#6f6b64"
             font.family: backend ? backend.font.family : ""
@@ -75,17 +78,20 @@ Item {
         id: totalLabel
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width
         spacing: -2
 
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             text: root.minutes(backend ? backend.timerTotal : 0)
             color: backend ? backend.colors.muted : "#6f6b64"
             font.family: backend ? backend.font.family : ""
             font.pixelSize: 10
         }
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
             text: root.seconds(backend ? backend.timerTotal : 0)
             color: backend ? backend.colors.muted : "#6f6b64"
             font.family: backend ? backend.font.family : ""

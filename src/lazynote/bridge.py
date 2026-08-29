@@ -284,7 +284,7 @@ class Backend(QObject):
     def load(self) -> None:
         self._state.load()
         legacy_timer = store.get_settings().get("timer_state")
-        if legacy_timer and self._state.current_timer_state() is None:
+        if timer.decode_state(legacy_timer) is not None and self._state.current_timer_state() is None:
             self._state.set_current_timer_state(legacy_timer)
         if legacy_timer:
             store.get_settings().set("timer_state", "")
