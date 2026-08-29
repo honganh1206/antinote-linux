@@ -198,6 +198,20 @@ class Backend(QObject):
 
     timerRemaining = Property(int, _timer_remaining, notify=timerChanged)
 
+    def _timer_elapsed(self) -> int:
+        if self._timer_state is None:
+            return 0
+        return timer.elapsed_ms(self._timer_state, self._clock_ms())
+
+    timerElapsed = Property(int, _timer_elapsed, notify=timerChanged)
+
+    def _timer_total(self) -> int:
+        if self._timer_state is None:
+            return 0
+        return timer.total_duration_ms(self._timer_state)
+
+    timerTotal = Property(int, _timer_total, notify=timerChanged)
+
     def _timer_display(self) -> str:
         return timer.format_remaining(self._timer_remaining())
 

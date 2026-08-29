@@ -44,6 +44,8 @@ def test_timer_command_persists_running_timer_and_exposes_properties(tmp_path, m
     assert b.run_timer_command("timer 10m") is True
     assert b.property("timerState") == "running"
     assert b.property("timerRemaining") == 600_000
+    assert b.property("timerElapsed") == 0
+    assert b.property("timerTotal") == 600_000
     assert b.property("timerDisplay") == "10:00"
     assert b.property("timerVisible") is True
     assert store.get_settings().get("timer_state")
@@ -55,6 +57,8 @@ def test_timer_pause_resume_and_restart_restore(tmp_path, monkeypatch):
     b.run_timer_command("timer 10s")
     now[0] = 4_250
     b.refresh_timer()
+    assert b.property("timerElapsed") == 3_250
+    assert b.property("timerTotal") == 10_000
     assert b.run_timer_command("timer p") is True
     assert b.property("timerState") == "paused"
     assert b.property("timerRemaining") == 6_750
@@ -62,6 +66,8 @@ def test_timer_pause_resume_and_restart_restore(tmp_path, monkeypatch):
     restored = type(b)(clock_ms=lambda: now[0])
     assert restored.property("timerState") == "paused"
     assert restored.property("timerRemaining") == 6_750
+    assert restored.property("timerElapsed") == 3_250
+    assert restored.property("timerTotal") == 10_000
     assert restored.run_timer_command("timer r") is True
     assert restored.property("timerState") == "running"
 
@@ -81,6 +87,8 @@ def test_timer_completion_notifies_once_and_keeps_done_overlay(tmp_path, monkeyp
     b.refresh_timer()
     assert completed == [True]
     assert b.property("timerState") == "done"
+    assert b.property("timerElapsed") == 1_000
+    assert b.property("timerTotal") == 1_000
     assert b.property("timerDisplay") == "00:00"
 
 
