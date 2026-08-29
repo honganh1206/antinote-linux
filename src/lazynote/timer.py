@@ -28,6 +28,7 @@ class TimerState:
     status: Literal["running", "paused", "done"]
     ends_at_ms: int | None
     remaining_ms: int
+    total_duration_ms: int
 
 
 def now_ms() -> int:
@@ -59,9 +60,19 @@ def remaining_ms(state: TimerState, now_ms: int) -> int:
     return state.remaining_ms
 
 
+def total_duration_ms(state: TimerState) -> int:
+    """Return the timer's original duration."""
+    return state.total_duration_ms
+
+
+def elapsed_ms(state: TimerState, now_ms: int) -> int:
+    """Return elapsed time without exceeding the original duration."""
+    return max(0, state.total_duration_ms - remaining_ms(state, now_ms))
+
+
 def start(duration_ms: int, now_ms: int) -> TimerState:
     """Start a positive-duration countdown at ``now_ms``."""
-    return TimerState("running", now_ms + duration_ms, duration_ms)
+    return TimerState("running", now_ms + duration_ms, duration_ms, duration_ms)
 
 
 def refresh(state: TimerState, now_ms: int) -> TimerState:
@@ -70,8 +81,8 @@ def refresh(state: TimerState, now_ms: int) -> TimerState:
         return state
     left = remaining_ms(state, now_ms)
     if left == 0:
-        return TimerState("done", None, 0)
-    return TimerState("running", state.ends_at_ms, left)
+        return TimerState("done", None, 0, state.total_duration_ms)
+    return TimerState("running", state.ends_at_ms, left, state.total_duration_ms)
 
 
 def pause(state: TimerState, now_ms: int) -> TimerState:
@@ -79,14 +90,16 @@ def pause(state: TimerState, now_ms: int) -> TimerState:
     current = refresh(state, now_ms)
     if current.status != "running":
         return current
-    return TimerState("paused", None, current.remaining_ms)
+    return TimerState("paused", None, current.remaining_ms, current.total_duration_ms)
 
 
 def resume(state: TimerState, now_ms: int) -> TimerState:
     """Resume a paused timer; other states remain unchanged."""
     if state.status != "paused":
         return state
-    return TimerState("running", now_ms + state.remaining_ms, state.remaining_ms)
+    return TimerState(
+        "running", now_ms + state.remaining_ms, state.remaining_ms, state.total_duration_ms
+    )
 
 
 def format_remaining(milliseconds: int) -> str:
@@ -104,6 +117,7 @@ def encode_state(state: TimerState | None) -> str:
             "status": state.status,
             "ends_at_ms": state.ends_at_ms,
             "remaining_ms": state.remaining_ms,
+            "total_duration_ms": state.total_duration_ms,
         },
         separators=(",", ":"),
     )
@@ -123,13 +137,16 @@ def decode_state(value: str | None) -> TimerState | None:
     status = data.get("status")
     ends_at_ms = data.get("ends_at_ms")
     remaining = data.get("remaining_ms")
+    total = data.get("total_duration_ms", remaining)
     if status not in ("running", "paused", "done"):
         return None
     if not isinstance(remaining, int) or isinstance(remaining, bool) or remaining < 0:
+        return None
+    if not isinstance(total, int) or isinstance(total, bool) or total < remaining:
         return None
     if status == "running":
         if not isinstance(ends_at_ms, int) or isinstance(ends_at_ms, bool):
             return None
     elif ends_at_ms is not None:
         return None
-    return TimerState(status, ends_at_ms, remaining)
+    return TimerState(status, ends_at_ms, remaining, total)
