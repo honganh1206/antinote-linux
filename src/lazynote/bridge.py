@@ -55,7 +55,7 @@ class Backend(QObject):
 
         self._clock_ms = clock_ms
         self._notify = notify
-        self._timer_state = timer.decode_state(store.get_settings().get("timer_state"))
+        self._timer_state = None
         self._timer_tick = QTimer(self)
         self._timer_tick.setInterval(250)
         self._timer_tick.timeout.connect(self.refresh_timer)
@@ -222,8 +222,16 @@ class Backend(QObject):
 
     timerVisible = Property(bool, _timer_visible, notify=timerChanged)
 
+    def _load_current_timer(self) -> None:
+        self._timer_state = timer.decode_state(self._state.current_timer_state())
+        if self._timer_state is not None:
+            self._timer_state = timer.refresh(self._timer_state, self._clock_ms())
+            self._persist_timer()
+        self._sync_timer_tick()
+        self.timerChanged.emit()
+
     def _persist_timer(self) -> None:
-        store.get_settings().set("timer_state", timer.encode_state(self._timer_state))
+        self._state.set_current_timer_state(timer.encode_state(self._timer_state) or None)
 
     def _sync_timer_tick(self) -> None:
         if self._timer_state is not None and self._timer_state.status == "running":
@@ -244,6 +252,8 @@ class Backend(QObject):
             self._timer_state = timer.pause(self._timer_state, now)
         elif command.kind == "resume" and self._timer_state is not None:
             self._timer_state = timer.resume(self._timer_state, now)
+        elif command.kind == "dismiss":
+            self._timer_state = None
         self._persist_timer()
         self._sync_timer_tick()
         self.timerChanged.emit()
@@ -273,6 +283,12 @@ class Backend(QObject):
     @Slot()
     def load(self) -> None:
         self._state.load()
+        legacy_timer = store.get_settings().get("timer_state")
+        if timer.decode_state(legacy_timer) is not None and self._state.current_timer_state() is None:
+            self._state.set_current_timer_state(legacy_timer)
+        if legacy_timer:
+            store.get_settings().set("timer_state", "")
+        self._load_current_timer()
         self.contentChanged.emit()
         self.statusChanged.emit()
 
@@ -290,18 +306,21 @@ class Backend(QObject):
     @Slot(int)
     def navigate(self, delta: int) -> None:
         if self._state.navigate(delta):
+            self._load_current_timer()
             self.contentChanged.emit()
             self.statusChanged.emit()
 
     @Slot()
     def new_note(self) -> None:
         self._state.add()
+        self._load_current_timer()
         self.contentChanged.emit()
         self.statusChanged.emit()
 
     @Slot()
     def delete_current(self) -> None:
         self._state.remove_current()
+        self._load_current_timer()
         self.contentChanged.emit()
         self.statusChanged.emit()
 

@@ -39,3 +39,12 @@ def test_settings_seed_defaults_and_round_trip(tmp_path):
 def test_settings_get_missing_returns_none(tmp_path):
     s = SettingsRepo(fresh(tmp_path))
     assert s.get("nope") is None
+
+
+def test_updates_timer_state(tmp_path):
+    notes = NotesRepo(fresh(tmp_path))
+    note = notes.create()
+    notes.update_timer(note.id, '{"status":"paused"}')
+    assert notes.list()[0].timer_state == '{"status":"paused"}'
+    notes.update_timer(note.id, None)
+    assert notes.list()[0].timer_state is None

@@ -17,7 +17,7 @@ DEFAULT_DURATION_MS = 25 * 60_000
 class TimerCommand:
     """A recognized line command."""
 
-    kind: Literal["start", "pause", "resume"]
+    kind: Literal["start", "pause", "resume", "dismiss"]
     duration_ms: int | None = None
 
 
@@ -44,6 +44,8 @@ def parse_command(line: str) -> TimerCommand | None:
         return TimerCommand("pause")
     if line == "timer r":
         return TimerCommand("resume")
+    if line == "timer x":
+        return TimerCommand("dismiss")
 
     match = re.fullmatch(r"timer ([1-9]\d*)([smh])", line)
     if match is None:

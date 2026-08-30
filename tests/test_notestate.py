@@ -65,3 +65,14 @@ def test_remove_last_leaves_fresh_note(tmp_path):
     state.remove_current()
     assert state.count() == 1
     assert state.content == ""
+
+
+def test_timer_state_is_scoped_to_current_note(tmp_path):
+    state, _ = make(tmp_path)
+    state.load()
+    state.set_current_timer_state("first")
+    state.add()
+    state.set_current_timer_state("second")
+    assert state.current_timer_state() == "second"
+    state.navigate(-1)
+    assert state.current_timer_state() == "first"
